@@ -1,6 +1,8 @@
 services:
+  # Orthanc DICOM server
+  services:
   orthanc:
-    image: jodogne/orthanc:latest
+    image: jodogne/orthanc-plugins:latest   # plugins image so /dicom-web exists
     container_name: smis-orthanc
     ports:
       - "8042:8042"
@@ -10,6 +12,7 @@ services:
       - orthanc-storage:/var/lib/orthanc/db
     restart: unless-stopped
 
+  # OHIF Viewer service
   ohif:
     image: ohif/viewer:latest
     container_name: smis-ohif
@@ -23,6 +26,7 @@ services:
       - ./ohif/app-config.json:/usr/share/nginx/html/app-config.json:ro
     restart: unless-stopped
 
+  # MinIO service
   minio:
     image: minio/minio:latest
     container_name: smis-minio
@@ -37,6 +41,7 @@ services:
       - minio-data:/data
     restart: unless-stopped
 
+  # Jupyter service
   jupyter:
     build: ./jupyter
     image: smis-jupyter:latest
@@ -62,6 +67,7 @@ services:
       --ServerApp.base_url=/ --allow-root"
     restart: unless-stopped
 
+  # MonaiLabel service
   monailabel:
     image: projectmonai/monailabel:latest
     container_name: smis-monailabel
@@ -81,11 +87,29 @@ services:
                --host 0.0.0.0 --port 8000"]
     restart: unless-stopped
 
-
-
-
+  # Galaxy service
+  galaxy:
+    image: quay.io/bgruening/galaxy:24.1
+    container_name: smis-galaxy
+    ports:
+      - "8080:80"                # note internal 80, not 8080
+    environment:
+      GALAXY_CONFIG_BRAND: "SMIS Galaxy"
+      GALAXY_CONFIG_ADMIN_USERS: "admin@local"
+      GALAXY_CONFIG_OBJECT_STORE_CONFIG_FILE: /galaxy/config/object_store_conf.xml
+      GALAXY_CONFIG_TOOL_CONFIG_FILE: /galaxy/config/tool_conf.xml
+    volumes:
+      - ./galaxy/config:/galaxy/config
+      - ./galaxy/tools:/galaxy/tools
+      - ./galaxy/workflows:/galaxy/workflows
+      - galaxy-data:/export
+    depends_on:
+      - minio
+      - orthanc
+    restart: unless-stopped
 
 volumes:
   orthanc-storage: {}
   minio-data: {}
   jhub-home: {}
+  galaxy-data: {}
