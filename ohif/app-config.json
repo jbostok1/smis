@@ -1,0 +1,28 @@
+{
+  "servers": {
+    "dicomWeb": [
+      {
+        "name": "Orthanc",
+        "qidoRoot": "http://localhost:8042/dicom-web",
+        "wadoRoot": "http://localhost:8042/dicom-web",
+        "wadoUriRoot": "http://localhost:8042/wado",
+        "qidoSupportsIncludeField": true,
+        "imageRendering": "wadors",
+        "thumbnailRendering": "wadors",
+        "requestOptions": { "auth": "orthanc:orthanc" }
+      }
+    ]
+  },
+  "extensions": [
+    "@ohif/extension-default",
+    "@ohif/extension-cornerstone",
+    "@ohif/extension-monai-label"
+  ],
+  "modes": [
+    "@ohif/mode-longitudinal",
+    "@ohif/mode-monai-label"
+  ],
+  "monaiLabel": {
+    "serverUrl": "http://localhost:8000"
+  }
+}

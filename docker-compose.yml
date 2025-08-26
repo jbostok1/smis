@@ -1,0 +1,91 @@
+services:
+  orthanc:
+    image: jodogne/orthanc:latest
+    container_name: smis-orthanc
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    volumes:
+      - ./orthanc/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - orthanc-storage:/var/lib/orthanc/db
+    restart: unless-stopped
+
+  ohif:
+    image: ohif/viewer:latest
+    container_name: smis-ohif
+    depends_on:
+      - orthanc
+    environment:
+      - APP_CONFIG=/usr/share/nginx/html/app-config.json
+    ports:
+      - "3000:80"
+    volumes:
+      - ./ohif/app-config.json:/usr/share/nginx/html/app-config.json:ro
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: smis-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: smis
+      MINIO_ROOT_PASSWORD: smis-secret-123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+  jupyter:
+    build: ./jupyter
+    image: smis-jupyter:latest
+    container_name: smis-jupyter
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: smis
+      S3_SECRET_KEY: smis-secret-123
+    ports:
+      - "8888:8888"
+    volumes:
+      - jhub-home:/home/jovyan
+      - ./notebooks:/workspace
+    depends_on:
+      - minio
+    command: >
+      bash -lc "jupyter lab
+      --ip=0.0.0.0 --port=8888 --no-browser
+      --ServerApp.token='' --ServerApp.password=''
+      --ServerApp.base_url=/ --allow-root"
+    restart: unless-stopped
+
+  monailabel:
+    image: projectmonai/monailabel:latest
+    container_name: smis-monailabel
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    depends_on:
+      - orthanc
+    ports:
+      - "8000:8000"
+    command: ["bash","-lc",
+              "monailabel apps --download --name radiology --output /workspace/apps && \
+               monailabel start_server --app /workspace/apps/radiology \
+               --studies http://orthanc:8042/dicom-web \
+               --conf models all \
+               --host 0.0.0.0 --port 8000"]
+    restart: unless-stopped
+
+
+
+
+
+volumes:
+  orthanc-storage: {}
+  minio-data: {}
+  jhub-home: {}

@@ -1,0 +1,9 @@
+{
+  "HttpServerEnabled": true,
+  "HttpPort": 8042,
+  "AuthenticationEnabled": false,
+  "RemoteAccessAllowed": true,
+  "EnableCors": true,
+  "CorsAllowedOrigin": "*",
+  "DicomWeb": { "Enable": true, "Root": "/dicom-web" }
+}
