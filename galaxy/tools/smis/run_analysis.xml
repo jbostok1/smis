@@ -1,0 +1,28 @@
+<tool id="smis_run_analysis" name="Run Analysis (placeholder)" version="0.1" profile="21.01">
+  <description>Create a derived Series and tag as processed (swap this for your MONAI step)</description>
+
+  <requirements>
+    <requirement type="package" version="2.4.4">pydicom</requirement>
+  </requirements>
+
+  <command detect_errors="exit_code"><![CDATA[
+python $__tool_directory__/scripts/run_monai_pipeline.py \
+  --in '${in_tar}' \
+  --out '${out_tar}' \
+  --series-desc '${series_desc}'
+  ]]></command>
+
+  <inputs>
+    <param name="in_tar" type="data" format="tar" label="Input DICOM tar"/>
+    <param name="series_desc" type="text" value="Processed by Galaxy" label="New Series Description"/>
+  </inputs>
+
+  <outputs>
+    <data name="out_tar" format="tar" label="Processed_${series_desc}.tar"/>
+  </outputs>
+
+  <help><![CDATA[
+Placeholder analysis step. Copies input DICOMs into a new Series with new UIDs and sets SeriesDescription.
+Replace the Python script body with your MONAI/AI pipeline as needed.
+  ]]></help>
+</tool>
