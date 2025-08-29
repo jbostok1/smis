@@ -1,0 +1,9 @@
+cat > galaxy/config/tool_conf.xml <<'XML'
+<toolbox monitor="true">
+  <section id="orthanc" name="Orthanc / DICOM">
+    <tool file="/galaxy/tools/orthanc_list_patients/orthanc_list_patients.xml"/>
+    <tool file="/galaxy/tools/orthanc_fetch_studies/orthanc_fetch_studies.xml"/>
+    <tool file="/galaxy/tools/ohif_launch/ohif_launch.xml"/>
+  </section>
+</toolbox>
+XML

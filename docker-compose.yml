@@ -1,8 +1,6 @@
 services:
-  # Orthanc DICOM server
-  services:
   orthanc:
-    image: jodogne/orthanc-plugins:latest   # plugins image so /dicom-web exists
+    image: jodogne/orthanc:latest
     container_name: smis-orthanc
     ports:
       - "8042:8042"
@@ -12,7 +10,6 @@ services:
       - orthanc-storage:/var/lib/orthanc/db
     restart: unless-stopped
 
-  # OHIF Viewer service
   ohif:
     image: ohif/viewer:latest
     container_name: smis-ohif
@@ -26,7 +23,6 @@ services:
       - ./ohif/app-config.json:/usr/share/nginx/html/app-config.json:ro
     restart: unless-stopped
 
-  # MinIO service
   minio:
     image: minio/minio:latest
     container_name: smis-minio
@@ -41,7 +37,6 @@ services:
       - minio-data:/data
     restart: unless-stopped
 
-  # Jupyter service
   jupyter:
     build: ./jupyter
     image: smis-jupyter:latest
@@ -67,7 +62,6 @@ services:
       --ServerApp.base_url=/ --allow-root"
     restart: unless-stopped
 
-  # MonaiLabel service
   monailabel:
     image: projectmonai/monailabel:latest
     container_name: smis-monailabel
@@ -79,33 +73,56 @@ services:
       - orthanc
     ports:
       - "8000:8000"
-    command: ["bash","-lc",
-              "monailabel apps --download --name radiology --output /workspace/apps && \
-               monailabel start_server --app /workspace/apps/radiology \
-               --studies http://orthanc:8042/dicom-web \
-               --conf models all \
-               --host 0.0.0.0 --port 8000"]
+    command: ["bash","-lc","monailabel apps --download --name radiology --output /workspace/apps && monailabel start_server --app /workspace/apps/radiology --studies http://orthanc:8042/dicom-web --conf models all --host 0.0.0.0 --port 8000"]
     restart: unless-stopped
 
-  # Galaxy service
+  postgres:
+    image: postgres:14
+    container_name: smis-pg
+    environment:
+      POSTGRES_USER: galaxy
+      POSTGRES_PASSWORD: galaxy
+      POSTGRES_DB: galaxy
+    ports:
+      - "5432:5432"   # optional; host access
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U galaxy -d galaxy || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   galaxy:
     image: quay.io/bgruening/galaxy:24.1
     container_name: smis-galaxy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      orthanc:
+        condition: service_started
     ports:
-      - "8080:80"                # note internal 80, not 8080
+      - "8080:80"
+    
     environment:
       GALAXY_CONFIG_BRAND: "SMIS Galaxy"
       GALAXY_CONFIG_ADMIN_USERS: "admin@local"
       GALAXY_CONFIG_OBJECT_STORE_CONFIG_FILE: /galaxy/config/object_store_conf.xml
       GALAXY_CONFIG_TOOL_CONFIG_FILE: /galaxy/config/tool_conf.xml
+      GALAXY_CONFIG_DATABASE_CONNECTION: postgresql://galaxy:galaxy@postgres:5432/galaxy?client_encoding=utf8
+      GALAXY_CONFIG_DATABASE_AUTO_MIGRATE: "true"
+      GALAXY_CONFIG_INSTALL_DATABASE: "true"
+      GALAXY_CONFIG_INTERACTIVETOOLS_ENABLE: "false"   # optional, quiets warnings
+
+
     volumes:
-      - ./galaxy/config:/galaxy/config
-      - ./galaxy/tools:/galaxy/tools
-      - ./galaxy/workflows:/galaxy/workflows
+      - ./galaxy/config:/export/galaxy/config
+      - ./galaxy/tools:/export/galaxy/tools
+      - ./galaxy/workflows:/export/galaxy/workflows
       - galaxy-data:/export
-    depends_on:
-      - minio
-      - orthanc
     restart: unless-stopped
 
 volumes:
@@ -113,3 +130,7 @@ volumes:
   minio-data: {}
   jhub-home: {}
   galaxy-data: {}
+  pgdata: {}
+  # Optional MONAI caches:
+  # monai-cache: {}
+  # monai-apps: {}

@@ -1,0 +1,12 @@
+cat > galaxy/config/object_store_conf.xml <<'XML'
+<object_store type="s3" store_by="uuid" auth="metadata">
+  <auth access_key="smis" secret_key="smis-secret-123" region="us-east-1" />
+  <bucket name="galaxy-data"/>
+  <connection host="minio" port="9000" is_secure="False"
+              calling_format="boto.s3.connection.OrdinaryCallingFormat" />
+  <extra_dirs>
+    <extra_dir type="job_work" path="/galaxy/server/database/job_working_directory"/>
+    <extra_dir type="temp" path="/galaxy/server/database/tmp"/>
+  </extra_dirs>
+</object_store>
+XML
