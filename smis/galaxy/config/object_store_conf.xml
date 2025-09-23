@@ -1,0 +1,18 @@
+<object_store type="distributed" id="primary">
+    <backends>
+
+        <backend id="files" type="disk" weight="1" store_by="uuid">
+            <files_dir path="/export/galaxy/database/files"/>
+            <extra_dir type="job_work" path="/export/galaxy/database/job_working_directory"/>
+            <extra_dir type="temp" path="/export/galaxy/database/tmp"/>
+        </backend>
+
+        <backend id="object_store" type="s3" weight="1" store_by="uuid">
+            <auth access_key="smis" secret_key="smis-secret-123" />
+            <bucket name="galaxy-data" use_reduced_redundancy="False" />
+            <connection host="minio" port="9000" is_secure="False" />
+            <cache path="/export/galaxy/database/object_store_cache" size="1000" />
+        </backend>
+
+    </backends>
+</object_store>
